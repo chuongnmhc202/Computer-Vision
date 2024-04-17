@@ -1,0 +1,54 @@
+encoder_conv: Đây là phần bộ mã hóa của mô hình. Nó chứa chuỗi các khối lớp xử lý ảnh đầu vào:
+
+ConvolutionalBlock: Áp dụng tích chập 2D để học đặc trưng, kèm theo hàm kích hoạt ReLU và chuẩn hóa batch.
+MaxPool2d: Giảm kích thước không gian của ảnh (downsampling), giúp tập trung vào các đặc trưng quan trọng.
+DenseBlock: Một chuỗi các DenseLayer mà ở đó mỗi lớp sẽ kết hợp đặc trưng từ các lớp trước đó thông qua phép nối (concatenation), tạo nên một khối dày đặc thông tin.
+Conv2d(1x1): Sử dụng để giảm số lượng kênh sau khi qua các DenseLayer.
+decoder_conv: Phần bộ giải mã của mô hình, sử dụng để tái tạo lại ảnh từ đặc trưng nén:
+
+TransposeConvolutionalBlock: Sử dụng tích chập đảo 2D để tăng kích thước không gian của tensor (upsampling), cùng với ReLU và chuẩn hóa batch.
+ConvTranspose2d: Tăng kích thước không gian lên để tiến tới kích thước ban đầu của ảnh.
+Sigmoid: Cuối cùng, hàm này được áp dụng để đưa các giá trị pixel về khoảng [0, 1], phù hợp với định dạng của ảnh đầu vào.
+
+nn.MSELoss(): Đây là hàm tổn thất Bình phương sai lệch trung bình (Mean Squared Error Loss), thường được sử dụng trong các bài toán hồi quy hoặc các tác vụ khác nơi bạn muốn đo lường sự chênh lệch giữa giá trị dự đoán và giá trị thực tế.
+
+
+Xử lý Không Gian Ẩn:
+
+VariationalAutoencoder có thêm bước xử lý không gian ẩn thông qua việc tính toán mean và log variance (được biểu diễn qua hai lớp Linear self.mean và self.log_var), sau đó sử dụng chúng để tạo ra điểm dữ liệu mới trong không gian ẩn thông qua reparameterization trick (self.reparameterization_trick). Điều này giúp mô hình có thể sinh ra dữ liệu mới từ không gian ẩn đã học.
+Autoencoder không có bước xử lý không gian ẩn như vậy, nó chỉ đơn giản học cách nén dữ liệu vào không gian ẩn và giải nén ra mà không có khả năng điều chỉnh hoặc sinh dữ liệu mới.
+Cấu Trúc và Đầu Ra của Mô Hình:
+
+VariationalAutoencoder trả về ba giá trị trong hàm forward: ảnh tái tạo, mean và log variance của không gian ẩn. Điều này quan trọng cho việc tính toán loss function bao gồm cả reconstruction loss và KL divergence loss.
+Autoencoder chỉ trả về ảnh tái tạo, không bao gồm mean và log variance vì không cần tính toán KL divergence.
+Reparameterization Trick:
+
+Chỉ có trong VariationalAutoencoder, nơi mà self.reparameterization_trick được sử dụng để lấy mẫu từ phân phối xác định bởi mean và log variance, tạo điều kiện cho việc tối ưu hóa và sinh dữ liệu.
+Unflatten và Flatten trong VariationalAutoencoder:
+
+VariationalAutoencoder sử dụng các lớp self.flatten và self.unflatten để chuyển đổi dữ liệu giữa không gian ảnh và không gian vector phẳng, điều này cần thiết để xử lý dữ liệu trong không gian ẩn. Autoencoder không rõ ràng thể hiện điều này vì cấu trúc giản đơn hơn.
+Mục Đích Sử Dụng:
+
+Mặc dù cả hai mô hình đều được sử dụng cho tác vụ giảm kích thước dữ liệu và học biểu diễn, VariationalAutoencoder cung cấp khả năng thêm về việc tạo ra dữ liệu mới nhờ vào việc mô hình hóa phân phối trong không gian ẩn, trong khi Autoencoder thông thường tập trung vào việc tái tạo dữ liệu.
+
+
+
+Hình ảnh bạn đã chia sẻ cho thấy quá trình nội suy trong không gian ẩn của một mô hình tự mã hóa biến thể (Variational Autoencoder - VAE). Quá trình này minh họa sự chuyển tiếp mượt mà giữa hai điểm dữ liệu trong không gian ẩn, thể hiện qua các hình ảnh tái tạo.
+
+Đây là các bước diễn ra trong mã:
+
+Lấy Mẫu Hình Ảnh: Bạn lấy hai hình ảnh ngẫu nhiên từ tập dữ liệu của mình.
+
+Xử Lý VAE:
+
+Mỗi hình ảnh được đưa qua mô hình VAE để tạo ra hình ảnh tái tạo (r_1, r_2) cùng với giá trị trung bình (mu_1, mu_2) và logarit của phương sai (sigma_1, sigma_2) của chúng trong không gian ẩn.
+Mã hóa latent (latent_1, latent_2) được tính toán bằng cách sử dụng "reparameterization trick", một kỹ thuật trong VAE giúp mô hình có thể học qua quá trình lấy mẫu ngẫu nhiên.
+Nội Suy: Tạo năm điểm nội suy giữa hai mã hóa latent, sử dụng các tỉ lệ khác nhau (0.1, 0.3, 0.5, 0.7, và 0.9).
+
+Tái Tạo Hình Ảnh từ Nội Suy: Mỗi điểm nội suy sau đó được đưa qua bộ giải mã của VAE để tạo hình ảnh tái tạo tương ứng.
+
+Hiển Thị Lưới Hình Ảnh: Hình ảnh tái tạo được hiển thị trên một lưới, bao gồm hình ảnh tái tạo từ các điểm dữ liệu gốc và từ các điểm nội suy.
+
+Tính ELBO: Tính giá trị Lower Bound Evidence (ELBO) cho từng hình ảnh tái tạo từ các điểm nội suy. ELBO là một phần của hàm mất mát trong VAE, đánh giá chất lượng của quá trình tái tạo và mức độ "phù hợp" của các điểm dữ liệu trong không gian ẩn.
+
+In ELBO: Kết quả của các giá trị ELBO được in ra cho mỗi hình ảnh tái tạo từ nội suy, cho phép bạn đánh giá sự thay đổi của ELBO giữa các điểm nội suy và hiểu rõ hơn về cách không gian ẩn phản ánh sự khác biệt giữa các điểm dữ liệu.
